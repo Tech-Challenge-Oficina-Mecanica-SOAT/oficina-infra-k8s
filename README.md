@@ -1,16 +1,16 @@
 # oficina-infra-k8s
 
-> Cluster EKS + manifestos Kubernetes da Oficina Mecânica (Tech Challenge Fase 3 — SOAT/FIAP).
+> Cluster EKS e manifestos Kubernetes da Oficina Mecânica, Tech Challenge Fase 3, SOAT/FIAP.
 
-Responsável: P3. Plano de execução completo em `pos-docs/Fase 3/tech-challenge-fase3-materials/02-planos-implementacao/plano-02-oficina-infra-k8s.md` (repositório de documentação do grupo).
+Este repositório provisiona o cluster EKS e os manifestos Kubernetes usados para rodar a aplicação da oficina mecânica.
 
 ## Status
 
-Bootstrap inicial. Estrutura de pastas criada conforme o plano; implementação em andamento.
+Bootstrap inicial; estrutura de pastas criada, implementação em andamento.
 
 ## Dependências
 
-Este repositório consome, via SSM Parameter Store, recursos publicados pelo repositório `oficina-infra-db` (dono: P4):
+Este repositório consome, via SSM Parameter Store, recursos publicados pelo repositório `oficina-infra-db`:
 
 ```
 /oficina/{env}/network/vpc-id
