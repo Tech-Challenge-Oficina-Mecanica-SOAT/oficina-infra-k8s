@@ -13,3 +13,9 @@ module "eks" {
   source      = "../../modules/eks"
   environment = var.environment
 }
+
+module "rds_ingress" {
+  source      = "../../modules/rds-ingress"
+  environment = var.environment
+  depends_on  = [module.eks]
+}
