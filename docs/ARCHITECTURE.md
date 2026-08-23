@@ -45,3 +45,9 @@ O plano original assumia nomes literais para as roles pré-criadas do Academy (`
 - **Sem IRSA (IAM Roles for Service Accounts):** o Academy não permite criar um provedor OIDC próprio.
 - **Sem chave KMS própria para secrets do etcd:** evita administração adicional de KMS neste ambiente acadêmico de ciclo de vida curto; os dados sensíveis da aplicação (senha do RDS, JWT) já são geridos separadamente via Secrets Manager pelo `oficina-infra-db`, não pelo etcd do cluster.
 - **Cluster endpoint público (`endpoint_public_access = true`):** necessário para `kubectl` funcionar a partir da máquina local, fora da VPC.
+
+## Descoberta relacionada: versão do Kubernetes fica obsoleta rápido
+
+Testado com `terraform apply` real: a versão `1.30` (a mais nova disponível quando o plano original foi escrito) já não tem nem suporte estendido no EKS — `aws eks describe-cluster-versions` retornou só `1.34`-`1.36` em `STANDARD_SUPPORT` e `1.31`-`1.33` em `EXTENDED_SUPPORT` (mais caro por hora de cluster). Tentar criar o node group com `1.30` falha com `InvalidParameterException: Requested AMI for this version 1.30 is not supported`, mesmo o cluster (control plane) tendo sido criado normalmente. Atualizado para `1.34` (a mais antiga ainda em suporte padrão, mantendo o espírito "versão suportada e estável" da decisão original). Mesmo padrão do problema encontrado na versão do `postgres` no `oficina-infra-db` (`15.7` também não existia mais): versões fixas em documentos de planejamento datam rápido; sempre validar contra a API da AWS (`describe-cluster-versions`, `describe-db-engine-versions`) antes de aplicar.
+
+Validado de ponta a ponta em 2026-08-23: `terraform apply` completo (cluster + node group) seguido de `aws eks update-kubeconfig` + `kubectl get nodes` mostrando o node em `Ready`.

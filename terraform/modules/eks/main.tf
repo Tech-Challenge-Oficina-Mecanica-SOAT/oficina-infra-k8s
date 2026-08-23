@@ -40,7 +40,7 @@ locals {
 resource "aws_eks_cluster" "this" {
   name     = local.cluster_name
   role_arn = local.cluster_role_arn
-  version  = "1.30"
+  version  = "1.34"
 
   vpc_config {
     subnet_ids             = local.private_subnet_ids
