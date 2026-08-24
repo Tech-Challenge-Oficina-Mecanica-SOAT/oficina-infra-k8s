@@ -6,7 +6,11 @@ Este repositório provisiona o cluster EKS e os manifestos Kubernetes usados par
 
 ## Status
 
-Bootstrap inicial; estrutura de pastas criada, implementação em andamento.
+Módulo Terraform do cluster EKS implementado e validado de ponta a ponta contra uma conta AWS Academy real (`terraform apply` completo + `kubectl get nodes` confirmando o node em `Ready`); demais etapas (rds-ingress, manifestos Kubernetes, scripts, New Relic) em andamento.
+
+## Arquitetura
+
+Decisões de design e trade-offs em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Dependências
 
