@@ -106,22 +106,32 @@ Validado nesta sessão contra uma conta AWS Academy real (não a final do grupo)
 
 - `terraform fmt -check -recursive`, `terraform init`, `terraform validate`: limpos nos dois ambientes.
 - `terraform apply` de ponta a ponta (cluster + node group + regra SG-to-SG): sucesso. `kubectl get nodes` confirmou o node em `Ready`. `aws ec2 describe-security-group-rules` confirmou que a regra SG-to-SG referencia de verdade o security group do EKS.
-- Manifestos Kubernetes: validados com `kubectl create --dry-run=client --validate=false -f <arquivo>` (validação estrutural; não há cluster ativo permanentemente para testar `kubectl apply` real).
-- `helm template` real contra o chart `newrelic/nri-bundle` usando `values-newrelic.yaml`: renderiza sem erro.
-- Scripts (`populate-secret.sh`, `deploy-manifests.sh`, `install-newrelic.sh`): checados com `bash -n` (sintaxe); execução real pendente de um cluster ativo.
+- `scripts/deploy-manifests.sh` rodado de ponta a ponta contra o cluster real: namespace, Secret (populado de verdade via Secrets Manager/Parameter Store), ConfigMap e Redis (`1/1 Running`, testado com `kubectl get pods`) — todos funcionando. Deployment/Service/HPA da API aplicados com sucesso; o pod fica em `InvalidImageName` porque `<ECR_URL>` ainda é um placeholder (P1 não publicou a imagem), não é uma falha do manifesto. O Service `LoadBalancer` provisionou um NLB real (`kubectl get svc` mostrou o hostname).
+- `helm template` real contra o chart `newrelic/nri-bundle` usando `values-newrelic.yaml`: renderiza sem erro. `helm upgrade --install` real ainda não testado (precisa de uma license key válida do New Relic).
+- Achado durante o teste: os scripts precisam terminar em LF, não CRLF — checkout no Windows com `core.autocrlf=true` (comum) quebra a expansão de variável em bash real. Corrigido com `.gitattributes`.
 
 Infra de teste é sempre destruída ao final de cada sessão de validação (ver seção de custos abaixo).
 
 ## Como fazer destroy (⚠️ importante para o budget)
 
-O EKS control plane e o node group continuam sendo cobrados por hora mesmo ociosos. Sempre que não for continuar no mesmo dia:
+O EKS control plane e o node group continuam sendo cobrados por hora mesmo ociosos.
+
+**Se o Service `oficina-api` (tipo `LoadBalancer`) foi aplicado, apague-o antes de destruir o Terraform:**
+
+```bash
+kubectl delete svc oficina-api -n oficina
+```
+
+O NLB por trás desse Service é criado pelo Kubernetes (controller interno do EKS), não pelo Terraform — o Terraform não sabe que ele existe e não consegue apagá-lo. Testado empiricamente: rodar `terraform destroy` do cluster sem apagar o Service antes deixa o NLB (e as ENIs dele) órfãos nas subnets públicas, e o `terraform destroy` do `oficina-infra-db` falha depois com `DependencyViolation: the subnet has dependencies and cannot be deleted`. Se isso acontecer, apague o NLB manualmente (`aws elbv2 describe-load-balancers` para achar o ARN, `aws elbv2 delete-load-balancer`) e espere as ENIs liberarem (`aws ec2 describe-network-interfaces --filters Name=subnet-id,Values=<subnet>`) antes de rodar o `destroy` de novo.
+
+Depois disso, destrua os dois ambientes normalmente:
 
 ```bash
 cd terraform/envs/homolog   # ou envs/prod
 terraform destroy
 ```
 
-Rotina recomendada por sessão de trabalho (~4h no Academy): iniciar o Lab e renovar credenciais → `terraform apply` → trabalhar/testar → `terraform destroy` antes de encerrar, se não for continuar no mesmo dia.
+Rotina recomendada por sessão de trabalho (~4h no Academy): iniciar o Lab e renovar credenciais → `terraform apply` → trabalhar/testar → `kubectl delete svc oficina-api -n oficina` → `terraform destroy` (este repo) → `terraform destroy` (`oficina-infra-db`) antes de encerrar, se não for continuar no mesmo dia.
 
 ## Contratos publicados
 
