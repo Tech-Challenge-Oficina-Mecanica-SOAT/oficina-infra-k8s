@@ -1,0 +1,16 @@
+# Normaliza todos os arquivos de texto para LF, independente do sistema
+# operacional de quem estiver editando (Windows, Mac, Linux).
+* text=auto eol=lf
+
+# Garante explicitamente LF nos arquivos Terraform
+*.tf     text eol=lf
+*.tfvars text eol=lf
+
+# Scripts shell sempre em LF (CRLF quebra expansão de variável em bash real,
+# não só em runners Linux — achado testando scripts/deploy-manifests.sh
+# localmente no Windows)
+*.sh     text eol=lf
+
+# Manifestos Kubernetes e values do Helm em LF por consistência
+*.yaml   text eol=lf
+*.yml    text eol=lf
