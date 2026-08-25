@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oficina-config
+  namespace: oficina
+  labels:
+    app.kubernetes.io/part-of: oficina-mecanica
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  Logging__LogLevel__Default: "Information"
+  Redis__Host: "oficina-redis"
+  Redis__Port: "6379"

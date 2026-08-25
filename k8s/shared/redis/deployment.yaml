@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oficina-redis
+  namespace: oficina
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/component: cache
+    app.kubernetes.io/part-of: oficina-mecanica
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/component: cache
+        app.kubernetes.io/part-of: oficina-mecanica
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+              name: redis
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          livenessProbe:
+            tcpSocket:
+              port: redis
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: redis
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      # emptyDir, não PVC: o EKS 1.23+ exige o addon aws-ebs-csi-driver para provisionar volumes
+      # via StorageClass, e esse addon precisa de permissões IAM (ec2:CreateVolume etc.) que a
+      # LabEksNodeRole do AWS Academy não tem e que não podemos conceder (sem IAM próprio,
+      # sem IRSA). Cache de Idempotency-Key tolera perda de dados num restart do pod.
+      volumes:
+        - name: data
+          emptyDir: {}
