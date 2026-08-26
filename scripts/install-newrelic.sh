@@ -8,6 +8,7 @@ helm repo add newrelic https://helm-charts.newrelic.com
 helm repo update
 
 helm upgrade --install newrelic-bundle newrelic/nri-bundle \
+  --version 8.0.20 \
   --namespace newrelic \
   --create-namespace \
   --values helm/values-newrelic.yaml \
