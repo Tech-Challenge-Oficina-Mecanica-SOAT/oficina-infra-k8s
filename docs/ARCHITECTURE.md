@@ -1,13 +1,25 @@
 # Visão Geral da Arquitetura
 
-Este repositório provisiona o cluster EKS que roda a aplicação da oficina mecânica e os manifestos Kubernetes usados no deploy. Documento em construção: cobre por enquanto o módulo Terraform do cluster EKS; outras seções serão adicionadas conforme os manifestos Kubernetes, o script de deploy e o New Relic forem implementados.
+Este repositório provisiona o cluster EKS que roda a aplicação da oficina mecânica e os manifestos Kubernetes usados no deploy. Documento em construção: cobre o módulo Terraform do cluster EKS e os manifestos Kubernetes; outras seções serão adicionadas conforme os scripts de deploy e o New Relic forem implementados.
 
 > Para instruções de uso, veja o [README.md](../README.md). Este documento foca nas decisões de design.
 
 ## Componentes lógicos
 
 - `terraform/modules/eks` — cria o cluster EKS e o managed node group, consumindo a VPC publicada pelo `oficina-infra-db` via Parameter Store, e publica o nome, endpoint e security group do cluster de volta no Parameter Store.
-- `terraform/modules/rds-ingress` — (a implementar) libera a porta 5432 do RDS para a security group do EKS.
+- `terraform/modules/rds-ingress` — libera a porta 5432 do RDS para a security group do EKS.
+- `k8s/shared` — namespace, ConfigMap com configuração não sensível e o Redis compartilhado (cache de Idempotency-Key).
+- `k8s/services/api` — Deployment, Service (`LoadBalancer` → NLB) e HPA da API .NET.
+
+## Decisão: Redis com `emptyDir`, não PVC
+
+O checklist original previa um PVC "pequeno" para o Redis. Não é viável neste ambiente: a partir do Kubernetes 1.23 o suporte in-tree ao provisionamento de EBS foi removido, então um `PersistentVolumeClaim` exige o addon `aws-ebs-csi-driver` instalado no cluster. Esse addon precisa de permissões IAM (`ec2:CreateVolume`, `ec2:AttachVolume` etc.) que a `LabEksNodeRole` do AWS Academy não tem — e não é possível anexar policies novas a ela nem criar uma role própria (mesma restrição de IAM documentada nas outras seções deste arquivo). Resultado: qualquer PVC ficaria `Pending` para sempre.
+
+`k8s/shared/redis/deployment.yaml` usa `emptyDir` em vez de PVC. Isso é adequado ao caso de uso (cache de Idempotency-Key do P1): perder o conteúdo num restart do pod é uma degradação aceitável, não uma falha de dados críticos.
+
+## Convenção de labels
+
+Todos os manifestos usam `app.kubernetes.io/name`, `component` e `part-of` consistentemente (mais `version` no Deployment da API), preparando o terreno para o dashboard/observabilidade do plano-05 (Fase 4) sem exigir retrabalho depois.
 
 ## Decisão: recursos Terraform diretos em vez do módulo comunitário `terraform-aws-modules/eks/aws`
 
