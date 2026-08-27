@@ -8,9 +8,10 @@ on:
 jobs:
   plan:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: terraform/envs/homolog
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [homolog, prod]
     steps:
       - uses: actions/checkout@v4
 
@@ -24,6 +25,8 @@ jobs:
 
       - name: Terraform init
         run: terraform init -backend=false
+        working-directory: terraform/envs/${{ matrix.env }}
 
       - name: Terraform validate
         run: terraform validate
+        working-directory: terraform/envs/${{ matrix.env }}
