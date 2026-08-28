@@ -91,6 +91,32 @@ export NEW_RELIC_LICENSE_KEY="..."
 
 `deploy-manifests.sh` já chama `populate-secret.sh` internamente; não é preciso rodar os dois separadamente.
 
+## Atalho com Makefile
+
+Para testes individuais na própria conta AWS Academy (por exemplo, para gravar uma demonstração), o `Makefile` na raiz do repositório encapsula a sequência completa:
+
+```bash
+make up                                  # sobe oficina-infra-db + oficina-infra-k8s + secret + manifestos
+make status                              # mostra nodes, pods e services
+make newrelic NEW_RELIC_LICENSE_KEY=...  # opcional, instala o agente do New Relic
+make down                                # apaga o Service LoadBalancer, destroi tudo e confere custo residual
+```
+
+`make help` lista todos os alvos, incluindo os passos individuais (`db-apply`, `k8s-apply`, `secret`, `deploy`, `sanity-check`, etc.).
+
+**Rodando na sua própria máquina, com sua própria conta AWS Academy:**
+
+- Clone `oficina-infra-db` como irmão deste repositório (`../oficina-infra-db`) ou aponte para o seu caminho com `INFRA_DB_DIR`:
+  ```bash
+  make up INFRA_DB_DIR=/caminho/para/seu/oficina-infra-db
+  ```
+- Renove suas próprias credenciais do AWS Academy antes de rodar (`~/.aws/credentials`); o Makefile confere isso automaticamente em cada alvo (`creds-check`) e para com uma mensagem clara se estiverem expiradas.
+- O Makefile usa um backend Terraform local para o `oficina-infra-db` (`make up` cria um `backend_override.tf` lá, nunca commitado) para não colidir com o state remoto S3 compartilhado pelo grupo. Isso é seguro rodar em paralelo com outras pessoas testando na própria conta.
+- Cada pessoa do grupo tem sua própria conta Academy isolada; não há como duas pessoas testarem ao mesmo tempo na mesma infraestrutura por este caminho, e não é esse o objetivo (é para teste individual, não para o ambiente final do grupo).
+- Precisa de `terraform`, `aws` CLI, `kubectl`, `helm` e `make` instalados. No Windows, `make` está disponível via `winget install ezwinports.make`; os scripts em `scripts/*.sh` rodam em bash (Git Bash cobre isso).
+
+Este atalho não substitui o CI/CD (seção abaixo), que é o mecanismo real de deploy do grupo.
+
 ## CI/CD
 
 - **Plan workflow:** [`.github/workflows/plan.yml`](.github/workflows/plan.yml) — roda `terraform fmt -check` e `terraform validate` para `homolog` e `prod` automaticamente em PRs que tocam `terraform/**`.
@@ -107,7 +133,7 @@ Validado nesta sessão contra uma conta AWS Academy real (não a final do grupo)
 - `terraform fmt -check -recursive`, `terraform init`, `terraform validate`: limpos nos dois ambientes.
 - `terraform apply` de ponta a ponta (cluster + node group + regra SG-to-SG): sucesso. `kubectl get nodes` confirmou o node em `Ready`. `aws ec2 describe-security-group-rules` confirmou que a regra SG-to-SG referencia de verdade o security group do EKS.
 - `scripts/deploy-manifests.sh` rodado de ponta a ponta contra o cluster real: namespace, Secret (populado de verdade via Secrets Manager/Parameter Store), ConfigMap e Redis (`1/1 Running`, testado com `kubectl get pods`) — todos funcionando. Deployment/Service/HPA da API aplicados com sucesso; o pod fica em `InvalidImageName` porque `<ECR_URL>` ainda é um placeholder (P1 não publicou a imagem), não é uma falha do manifesto. O Service `LoadBalancer` provisionou um NLB real (`kubectl get svc` mostrou o hostname).
-- `helm template` real contra o chart `newrelic/nri-bundle` usando `values-newrelic.yaml`: renderiza sem erro. `helm upgrade --install` real ainda não testado (precisa de uma license key válida do New Relic).
+- `helm upgrade --install` real do chart `newrelic/nri-bundle` (`8.0.20`) contra um cluster EKS real, com license key válida: `STATUS: deployed`, os 5 pods do namespace `newrelic` em `Running`, log do container `kubelet-scraper` confirmando conexão bem-sucedida ao kubelet do node.
 - Achado durante o teste: os scripts precisam terminar em LF, não CRLF — checkout no Windows com `core.autocrlf=true` (comum) quebra a expansão de variável em bash real. Corrigido com `.gitattributes`.
 
 Infra de teste é sempre destruída ao final de cada sessão de validação (ver seção de custos abaixo).
@@ -132,6 +158,8 @@ terraform destroy
 ```
 
 Rotina recomendada por sessão de trabalho (~4h no Academy): iniciar o Lab e renovar credenciais → `terraform apply` → trabalhar/testar → `kubectl delete svc oficina-api -n oficina` → `terraform destroy` (este repo) → `terraform destroy` (`oficina-infra-db`) antes de encerrar, se não for continuar no mesmo dia.
+
+Quem estiver usando o atalho do Makefile (seção acima) pode rodar só `make down`, que já faz essa sequência inteira e confere no final que não sobrou recurso cobrando.
 
 ## Contratos publicados
 
