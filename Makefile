@@ -12,6 +12,15 @@ INFRA_DB_DIR ?= ../oficina-infra-db
 AWS_REGION ?= us-east-1
 CLUSTER_NAME := oficina-eks-$(ENV)
 
+# No Git Bash (Windows), aws/helm instalados via winget às vezes não aparecem
+# no PATH herdado pelo shell que o make usa para rodar as receitas, mesmo
+# funcionando normalmente no PowerShell. Isso faz o creds-check acusar
+# "credenciais inválidas" quando na verdade o comando aws nem foi encontrado.
+# Os caminhos abaixo são acrescentados como fallback: não têm efeito se já
+# estiverem no PATH, e são ignorados silenciosamente se não existirem.
+AWS_CLI_FALLBACK := /c/Program Files/Amazon/AWSCLIV2
+HELM_FALLBACK := $(wildcard /c/Users/*/AppData/Local/Microsoft/WinGet/Packages/Helm.Helm_Microsoft.Winget.Source_*/windows-amd64)
+export PATH := $(PATH):$(AWS_CLI_FALLBACK):$(HELM_FALLBACK)
 export MSYS_NO_PATHCONV=1
 
 .PHONY: help creds-check backend-override db-apply db-destroy k8s-apply k8s-destroy \
@@ -39,8 +48,17 @@ help:
 	@echo "Ajuste o valor se o seu clone não estiver ao lado deste repositório."
 
 creds-check:
-	@aws sts get-caller-identity >/dev/null 2>&1 && echo "Credenciais AWS OK." || \
-		(echo "Credenciais inválidas ou expiradas. Renove em AWS Academy -> AWS Details -> Show, e cole em ~/.aws/credentials." && exit 1)
+	@if ! command -v aws >/dev/null 2>&1; then \
+		echo "Comando 'aws' não encontrado no PATH deste shell. Confira se o AWS CLI está instalado e no PATH."; \
+		exit 1; \
+	fi
+	@if ! aws sts get-caller-identity; then \
+		echo ""; \
+		echo "Falha acima ao chamar 'aws sts get-caller-identity'. Se for erro de credenciais expiradas," ; \
+		echo "renove em AWS Academy -> AWS Details -> Show, e cole em ~/.aws/credentials."; \
+		exit 1; \
+	fi
+	@echo "Credenciais AWS OK."
 
 backend-override: creds-check
 	@if [ ! -d "$(INFRA_DB_DIR)" ]; then \
