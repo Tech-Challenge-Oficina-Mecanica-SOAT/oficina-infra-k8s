@@ -37,16 +37,18 @@ spec:
                 name: oficina-config
             - secretRef:
                 name: oficina-secrets
-          # /health/live e /health/ready só existem a partir do PR #44 do
-          # oficina-mecanica (ainda não mergeado em main). Enquanto a imagem
-          # publicada em `latest` continuar sendo buildada a partir de main,
-          # que só expõe /health, rodar:
+          # /health/live e /health/ready foram adicionados no PR #44 do
+          # oficina-mecanica, mergeado em main em 2026-09-04. A imagem
+          # publicada em `latest` já deve ter os dois endpoints, então o
+          # patch abaixo não deveria ser mais necessário (ainda não
+          # reconfirmado com um deploy novo). Se o pod cair em
+          # CrashLoopBackOff com probe 404 de novo, é sinal de que a imagem
+          # em `latest` regrediu ou não foi republicada; contorno enquanto
+          # isso não for investigado:
           #   kubectl patch deployment oficina-api -n oficina --type='json' -p='[
           #     {"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/httpGet/path","value":"/health"},
           #     {"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/path","value":"/health"}
           #   ]'
-          # depois de aplicar este manifesto. Testado assim em 2026-09-03,
-          # pod chegou em 1/1 Running e /health respondeu 200 via NLB.
           livenessProbe:
             httpGet:
               path: /health/live
