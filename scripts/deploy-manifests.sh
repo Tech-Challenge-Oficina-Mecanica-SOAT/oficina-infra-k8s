@@ -13,6 +13,9 @@ kubectl apply -f k8s/shared/namespace.yaml
 # Popula o Secret (lê Parameter Store + Secrets Manager).
 ./scripts/populate-secret.sh "$ENV"
 
+# Credencial pra puxar a imagem privada do GHCR.
+./scripts/create-ghcr-pull-secret.sh "$ENV"
+
 kubectl apply -f k8s/shared/configmap.yaml
 kubectl apply -f k8s/shared/redis/
 kubectl apply -f k8s/services/api/

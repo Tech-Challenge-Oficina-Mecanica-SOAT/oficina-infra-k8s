@@ -26,6 +26,7 @@ Decisões de design, trade-offs e descobertas feitas durante a implementação (
 - **eksctl** (opcional, útil para depuração do cluster).
 - **Credenciais do AWS Academy Learner Lab**, exportadas como `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN` (expiram a cada ~4h; renove antes de rodar `apply`, os scripts de deploy ou `destroy`).
 - **`oficina-infra-db` já aplicado** no mesmo ambiente (`homolog` ou `prod`) e na mesma conta AWS Academy — este repositório lê a VPC e o RDS dele via Parameter Store.
+- **Personal Access Token do GitHub com permissão `Packages: Read-only`**, exportado como `GHCR_USERNAME` (seu usuário do GitHub) e `GHCR_PAT`. O pacote da imagem da API no GHCR é privado; sem isso o pod não consegue puxar a imagem. Gere em `github.com/settings/tokens?type=beta`, tipo fine-grained, escopado só no repositório `oficina-mecanica`, permissão "Packages" como "Read-only". Se o pacote virar público no futuro, esse passo deixa de ser necessário.
 
 ## Dependências
 
@@ -57,9 +58,10 @@ k8s/
 helm/
   values-newrelic.yaml    # values do chart nri-bundle
 scripts/
-  populate-secret.sh      # lê Parameter Store + Secrets Manager, cria o Secret K8s
-  deploy-manifests.sh     # orquestra o deploy completo
-  install-newrelic.sh     # helm upgrade --install do agente
+  populate-secret.sh          # lê Parameter Store + Secrets Manager, cria o Secret K8s
+  create-ghcr-pull-secret.sh  # cria o imagePullSecret pra puxar a imagem privada do GHCR
+  deploy-manifests.sh         # orquestra o deploy completo
+  install-newrelic.sh         # helm upgrade --install do agente
 docs/
   ARCHITECTURE.md         # decisões de design
 ```
@@ -82,6 +84,8 @@ terraform apply
 
 # 2. Deploy dos manifestos (a partir da raiz do repositório)
 cd ../../..
+export GHCR_USERNAME="seu-usuario-github"
+export GHCR_PAT="..."
 ./scripts/deploy-manifests.sh homolog   # ou prod
 
 # 3. (Opcional) Instalar o agente do New Relic
