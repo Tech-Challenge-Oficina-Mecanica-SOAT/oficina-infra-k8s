@@ -30,13 +30,23 @@ spec:
           # acima (criado por scripts/create-ghcr-pull-secret.sh).
           image: ghcr.io/tech-challenge-oficina-mecanica-soat/oficina-mecanica-api:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 5000
               name: http
           envFrom:
             - configMapRef:
                 name: oficina-config
             - secretRef:
                 name: oficina-secrets
+          # /health/live e /health/ready só existem a partir do PR #44 do
+          # oficina-mecanica (ainda não mergeado em main). Enquanto a imagem
+          # publicada em `latest` continuar sendo buildada a partir de main,
+          # que só expõe /health, rodar:
+          #   kubectl patch deployment oficina-api -n oficina --type='json' -p='[
+          #     {"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/httpGet/path","value":"/health"},
+          #     {"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/path","value":"/health"}
+          #   ]'
+          # depois de aplicar este manifesto. Testado assim em 2026-09-03,
+          # pod chegou em 1/1 Running e /health respondeu 200 via NLB.
           livenessProbe:
             httpGet:
               path: /health/live
