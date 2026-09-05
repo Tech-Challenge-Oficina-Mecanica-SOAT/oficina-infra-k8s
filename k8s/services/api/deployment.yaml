@@ -31,7 +31,7 @@ spec:
         # Injeta instrumentação sem precisar builda-la na imagem da API
         # (o Dockerfile do oficina-mecanica não instala nenhum agente).
         - name: newrelic-agent-init
-          image: newrelic/newrelic-dotnet-init:latest
+          image: newrelic/newrelic-dotnet-init:10.54.0.0
           # A imagem só empacota os arquivos do agente em /instrumentation;
           # não copia sozinha, precisa mandar o comando explicitamente. O
           # chown é necessário porque o container da API roda como appuser
