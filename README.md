@@ -62,6 +62,8 @@ scripts/
   create-ghcr-pull-secret.sh  # cria o imagePullSecret pra puxar a imagem privada do GHCR
   deploy-manifests.sh         # orquestra o deploy completo
   install-newrelic.sh         # helm upgrade --install do agente
+  bootstrap-demo-admin.sh     # cria um usuário Admin de demonstração (rodar uma vez)
+  demo-e2e.sh                 # ciclo de vida completo da OS + auth via Lambda, de ponta a ponta
 docs/
   ARCHITECTURE.md         # decisões de design
 ```
@@ -91,9 +93,15 @@ export GHCR_PAT="..."
 # 3. (Opcional) Instalar o agente do New Relic
 export NEW_RELIC_LICENSE_KEY="..."
 ./scripts/install-newrelic.sh homolog
+
+# 4. (Opcional) Demonstrar o ciclo de vida completo da OS de ponta a ponta
+./scripts/bootstrap-demo-admin.sh   # só na primeira vez
+./scripts/demo-e2e.sh
 ```
 
 `deploy-manifests.sh` já chama `populate-secret.sh` internamente; não é preciso rodar os dois separadamente.
+
+`demo-e2e.sh` cria um cliente e veículo de teste, abre uma OS e anda o ciclo de vida completo (`Recebida → EmDiagnostico → AguardandoAprovacao → EmExecucao → Finalizada → Entregue`), aprovando a OS com um token emitido de verdade pelo `oficina-lambda-auth` (não o token do Admin) — prova a integração Lambda → API Gateway → VPC Link → NLB → EKS na mesma execução. Idempotente: remove o cliente de demonstração anterior antes de criar um novo.
 
 ## Atalho com Makefile
 
