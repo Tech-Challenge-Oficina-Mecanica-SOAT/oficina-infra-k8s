@@ -9,8 +9,12 @@ newrelic-infrastructure:
   enabled: true
   privileged: true
 
+# Desligado: já instrumentamos a API manualmente via init container
+# (k8s/services/api/deployment.yaml, PR #12), então o webhook de injeção
+# automática do agente APM é redundante aqui. Também evita gastar 2 dos
+# poucos pods disponíveis no node t3.small (limite de 11 pods/node).
 nri-metadata-injection:
-  enabled: true
+  enabled: false
 
 nri-kube-events:
   enabled: true
