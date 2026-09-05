@@ -125,10 +125,13 @@ Este atalho não substitui o CI/CD (seção abaixo), que é o mecanismo real de 
 
 - **Plan workflow:** [`.github/workflows/plan.yml`](.github/workflows/plan.yml) — roda `terraform fmt -check` e `terraform validate` para `homolog` e `prod` automaticamente em PRs que tocam `terraform/**`.
 - **Apply workflow:** [`.github/workflows/apply.yml`](.github/workflows/apply.yml) — disparo **manual** (`workflow_dispatch`), pois depende de credenciais do AWS Academy que expiram a cada 4h. Executa `terraform apply` no ambiente escolhido (`homolog` ou `prod`).
+- **Deploy Manifests workflow:** [`.github/workflows/deploy-manifests.yml`](.github/workflows/deploy-manifests.yml) — também disparo **manual** (`workflow_dispatch`), mesmo motivo do `apply`. Roda `scripts/deploy-manifests.sh` no ambiente escolhido: popula o Secret, cria o `imagePullSecret` do GHCR e aplica os manifestos, sempre puxando a imagem mais recente publicada pelo `oficina-mecanica`. É o passo que faltava para fechar o ciclo de CI/CD completo (o `oficina-mecanica` builda e publica a imagem automaticamente; este workflow aplica ela no cluster).
 
 ### Configurar GitHub Secrets
 
-- **`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN`:** necessários para o workflow `apply`. Adicione em `Settings → Secrets and variables → Actions`. Atualize antes de disparar o workflow, já que expiram a cada 4h.
+- **`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN`:** necessários para os workflows `apply` e `deploy-manifests`. Adicione em `Settings → Secrets and variables → Actions`. Atualize antes de disparar qualquer um dos dois, já que expiram a cada 4h.
+- **`GHCR_USERNAME` / `GHCR_PAT`:** necessários só para o `deploy-manifests`, pra criar o `imagePullSecret` do pacote privado no GHCR. Veja a seção de pré-requisitos acima para como gerar o PAT.
+- **`NEW_RELIC_LICENSE_KEY`:** opcional, só necessário se quiser que o `deploy-manifests` também popule a license key do New Relic (usada tanto pelo agente APM da API quanto pelo `install-newrelic.sh`, disparado à parte).
 
 ## Testes
 
