@@ -8,5 +8,4 @@ metadata:
 data:
   ASPNETCORE_ENVIRONMENT: "Production"
   Logging__LogLevel__Default: "Information"
-  Redis__Host: "oficina-redis"
-  Redis__Port: "6379"
+  Redis__ConnectionString: "oficina-redis:6379"
