@@ -10,6 +10,10 @@ metadata:
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: nlb
     service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    # O cluster só tem 1 node (custo), mas o NLB usa as 2 subnets públicas
+    # (2 AZs). Sem isso, metade do tráfego (a AZ sem node) cai em timeout/503
+    # (cross-zone load balancing vem desligado por padrão em NLB).
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
 spec:
   type: LoadBalancer
   selector:
