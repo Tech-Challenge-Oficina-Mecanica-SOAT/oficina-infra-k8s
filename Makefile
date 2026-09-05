@@ -25,7 +25,12 @@ export AWS_DEFAULT_REGION := $(AWS_REGION)
 # Os caminhos abaixo são acrescentados como fallback: não têm efeito se já
 # estiverem no PATH, e são ignorados silenciosamente se não existirem.
 AWS_CLI_FALLBACK := /c/Program Files/Amazon/AWSCLIV2
-HELM_FALLBACK := $(wildcard /c/Users/*/AppData/Local/Microsoft/WinGet/Packages/Helm.Helm_Microsoft.Winget.Source_*/windows-amd64)
+# $(wildcard) do GNU Make no Windows só resolve glob em caminho nativo
+# (C:/...), não em caminho estilo MSYS (/c/...) - por isso o wildcard usa
+# C:/ aqui. O resultado precisa voltar pra /c/ (via $(subst)) antes de
+# entrar no PATH, senão o ":" depois do "C" é lido como separador de PATH
+# pelo bash e corta o caminho ao meio.
+HELM_FALLBACK := $(subst C:,/c,$(wildcard C:/Users/*/AppData/Local/Microsoft/WinGet/Packages/Helm.Helm_Microsoft.Winget.Source_*/windows-amd64))
 export PATH := $(PATH):$(AWS_CLI_FALLBACK):$(HELM_FALLBACK)
 export MSYS_NO_PATHCONV=1
 
@@ -129,7 +134,7 @@ sanity-check: creds-check
 	@echo ""
 	@echo "Tudo acima deve vir vazio. Se algo aparecer, ainda tem recurso cobrando."
 
-up: db-apply k8s-apply kubeconfig secret deploy
+up: db-apply k8s-apply kubeconfig deploy
 	@echo ""
 	@echo "Ambiente de pé. O pod da API só fica Ready quando a imagem real substituir o placeholder <ECR_URL>."
 	@echo "Rode 'make newrelic' (com NEW_RELIC_LICENSE_KEY exportada) para instalar o monitoramento."
