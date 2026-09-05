@@ -81,45 +81,45 @@ k8s-apply: creds-check
 	cd terraform/envs/$(ENV) && terraform init -input=false && terraform apply -auto-approve
 
 k8s-destroy: creds-check
-	kubectl delete svc oficina-api -n oficina --ignore-not-found
+	kubectl delete svc oficina-api -n oficina --ignore-not-found;
 	cd terraform/envs/$(ENV) && terraform destroy -auto-approve
 
 kubeconfig: creds-check
-	aws eks update-kubeconfig --name $(CLUSTER_NAME) --region $(AWS_REGION)
-	kubectl get nodes
+	aws eks update-kubeconfig --name $(CLUSTER_NAME) --region $(AWS_REGION);
+	kubectl get nodes;
 
 secret:
-	bash scripts/populate-secret.sh $(ENV)
+	bash scripts/populate-secret.sh $(ENV);
 
 deploy:
-	bash scripts/deploy-manifests.sh $(ENV)
+	bash scripts/deploy-manifests.sh $(ENV);
 
 newrelic:
 	@if [ -z "$$NEW_RELIC_LICENSE_KEY" ]; then \
 		echo "Defina NEW_RELIC_LICENSE_KEY antes: export NEW_RELIC_LICENSE_KEY=<sua-chave>"; exit 1; \
 	fi
-	bash scripts/install-newrelic.sh $(ENV)
+	bash scripts/install-newrelic.sh $(ENV);
 
 status:
-	kubectl get nodes
+	kubectl get nodes;
 	@echo ""
-	kubectl get pods -n oficina
+	kubectl get pods -n oficina;
 	@echo ""
-	kubectl get svc -n oficina
+	kubectl get svc -n oficina;
 	@echo ""
-	-kubectl get pods -n newrelic
+	-kubectl get pods -n newrelic;
 
 sanity-check: creds-check
 	@echo "VPCs não default:"
-	@aws ec2 describe-vpcs --filters "Name=is-default,Values=false" --query 'Vpcs[].VpcId' --output text
+	@aws ec2 describe-vpcs --filters "Name=is-default,Values=false" --query 'Vpcs[].VpcId' --output text;
 	@echo "NAT Gateways:"
-	@aws ec2 describe-nat-gateways --filter "Name=state,Values=available,pending" --query 'NatGateways[].NatGatewayId' --output text
+	@aws ec2 describe-nat-gateways --filter "Name=state,Values=available,pending" --query 'NatGateways[].NatGatewayId' --output text;
 	@echo "RDS instances:"
-	@aws rds describe-db-instances --query 'DBInstances[].DBInstanceIdentifier' --output text
+	@aws rds describe-db-instances --query 'DBInstances[].DBInstanceIdentifier' --output text;
 	@echo "EKS clusters:"
-	@aws eks list-clusters --query 'clusters' --output text
+	@aws eks list-clusters --query 'clusters' --output text;
 	@echo "Load balancers:"
-	@aws elbv2 describe-load-balancers --query 'LoadBalancers[].LoadBalancerName' --output text
+	@aws elbv2 describe-load-balancers --query 'LoadBalancers[].LoadBalancerName' --output text;
 	@echo ""
 	@echo "Tudo acima deve vir vazio. Se algo aparecer, ainda tem recurso cobrando."
 
