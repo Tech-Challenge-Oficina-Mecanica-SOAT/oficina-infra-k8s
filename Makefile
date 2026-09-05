@@ -12,6 +12,12 @@ INFRA_DB_DIR ?= ../oficina-infra-db
 AWS_REGION ?= us-east-1
 CLUSTER_NAME := oficina-eks-$(ENV)
 
+# Os scripts em scripts/*.sh chamam aws sem --region (exceto onde já é
+# passado explicitamente); sem isso no ambiente, a CLI falha com
+# "NoRegion: You must specify a region" assim que rodam fora de um shell
+# que já tenha uma região configurada em ~/.aws/config.
+export AWS_DEFAULT_REGION := $(AWS_REGION)
+
 # No Git Bash (Windows), aws/helm instalados via winget às vezes não aparecem
 # no PATH herdado pelo shell que o make usa para rodar as receitas, mesmo
 # funcionando normalmente no PowerShell. Isso faz o creds-check acusar
