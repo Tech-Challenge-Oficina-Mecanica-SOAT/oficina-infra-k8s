@@ -23,6 +23,30 @@ spec:
     spec:
       imagePullSecrets:
         - name: ghcr-pull-secret
+      volumes:
+        - name: newrelic-instrumentation
+          emptyDir: {}
+      initContainers:
+        # Copia o agente .NET do New Relic para o volume compartilhado abaixo.
+        # Injeta instrumentação sem precisar builda-la na imagem da API
+        # (o Dockerfile do oficina-mecanica não instala nenhum agente).
+        - name: newrelic-agent-init
+          image: newrelic/newrelic-dotnet-init:latest
+          # A imagem só empacota os arquivos do agente em /instrumentation;
+          # não copia sozinha, precisa mandar o comando explicitamente. O
+          # chown é necessário porque o container da API roda como appuser
+          # (999:999, não-root) e precisa escrever o log do agente ali dentro.
+          command: ["sh", "-c", "cp -a /instrumentation/. /newrelic-instrumentation/ && chown -R 999:999 /newrelic-instrumentation"]
+          volumeMounts:
+            - name: newrelic-instrumentation
+              mountPath: /newrelic-instrumentation
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
       containers:
         - name: api
           # Imagem publicada automaticamente pelo ci.yml do oficina-mecanica a cada
@@ -32,23 +56,29 @@ spec:
           ports:
             - containerPort: 5000
               name: http
+          volumeMounts:
+            - name: newrelic-instrumentation
+              mountPath: /newrelic-instrumentation
           envFrom:
             - configMapRef:
                 name: oficina-config
             - secretRef:
                 name: oficina-secrets
-          # /health/live e /health/ready foram adicionados no PR #44 do
-          # oficina-mecanica, mergeado em main em 2026-09-04. A imagem
-          # publicada em `latest` já deve ter os dois endpoints, então o
-          # patch abaixo não deveria ser mais necessário (ainda não
-          # reconfirmado com um deploy novo). Se o pod cair em
-          # CrashLoopBackOff com probe 404 de novo, é sinal de que a imagem
-          # em `latest` regrediu ou não foi republicada; contorno enquanto
-          # isso não for investigado:
-          #   kubectl patch deployment oficina-api -n oficina --type='json' -p='[
-          #     {"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/httpGet/path","value":"/health"},
-          #     {"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/httpGet/path","value":"/health"}
-          #   ]'
+          env:
+            # Instrumentação APM do New Relic via profiler .NET (CLR Profiling API).
+            # Se NEW_RELIC_LICENSE_KEY vier vazio (Secret sem valor), o agente
+            # carrega mas não reporta nada; não impede a API de rodar normalmente.
+            - name: CORECLR_ENABLE_PROFILING
+              value: "1"
+            - name: CORECLR_PROFILER
+              value: "{36032161-FFC0-4B61-B559-F6C5D41BAE5A}"
+            - name: CORECLR_PROFILER_PATH
+              value: /newrelic-instrumentation/libNewRelicProfiler.so
+            - name: CORECLR_NEWRELIC_HOME
+              value: /newrelic-instrumentation
+          # Testado de ponta a ponta em 2026-09-05 (correção do Redis__ConnectionString
+          # no configmap.yaml): pod chega em 1/1 Running sem nenhum ajuste manual,
+          # /health, /health/live e /health/ready respondem 200 via NLB.
           livenessProbe:
             httpGet:
               path: /health/live

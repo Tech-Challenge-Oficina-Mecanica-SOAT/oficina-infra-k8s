@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ENV=${1:-homolog}
+NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY:-}
 
 echo "Populando Secret K8s a partir do Secrets Manager para env=$ENV"
 
@@ -18,6 +19,7 @@ kubectl create secret generic oficina-secrets \
   --namespace oficina \
   --from-literal=ConnectionStrings__DefaultConnection="$CONNECTION_STRING" \
   --from-literal=Jwt__SecretKey="$JWT_SECRET" \
+  --from-literal=NEW_RELIC_LICENSE_KEY="$NEW_RELIC_LICENSE_KEY" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 echo "Secret 'oficina-secrets' criado/atualizado no namespace 'oficina'."

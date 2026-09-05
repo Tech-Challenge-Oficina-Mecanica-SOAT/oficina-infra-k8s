@@ -9,3 +9,4 @@ data:
   ASPNETCORE_ENVIRONMENT: "Production"
   Logging__LogLevel__Default: "Information"
   Redis__ConnectionString: "oficina-redis:6379"
+  NEW_RELIC_APP_NAME: "oficina-mecanica-api"
