@@ -1,7 +1,8 @@
-# Garante aws/helm no PATH quando um script roda direto (./scripts/x.sh),
-# fora do make (que já cuida disso no proprio Makefile). Sem isso, kubectl
-# falha com "executable aws not found" ao tentar renovar credenciais via
-# client-go exec credential plugin, mesmo com o aws CLI instalado.
+# Garante aws/helm no PATH e a regiao da AWS quando um script roda direto
+# (./scripts/x.sh), fora do make (que ja cuida dos dois no proprio
+# Makefile). Sem isso, kubectl falha com "executable aws not found" ao
+# tentar renovar credenciais via client-go exec credential plugin, e
+# comandos aws sem --region explicito falham com "NoRegion".
 #
 # Formato POSIX (":", "/c/...") e suficiente aqui: diferente do Makefile
 # (onde o PATH herdado por make.exe ja vem em formato nativo do Windows e
@@ -22,4 +23,5 @@ if ! command -v helm >/dev/null 2>&1; then
   fi
 fi
 
+export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
 export MSYS_NO_PATHCONV=1
