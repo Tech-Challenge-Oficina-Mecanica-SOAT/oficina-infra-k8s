@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/_ensure-path.sh"
+
 # Cria (se nao existir) um usuario Admin pra usar nas demos/apresentacao.
 # So precisa rodar uma vez por ambiente/banco - o admin criado fica valido
 # ate o banco ser recriado. Rode isso ANTES da apresentacao, nao durante:
