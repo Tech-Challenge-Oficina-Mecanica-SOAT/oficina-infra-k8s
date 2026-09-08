@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source "$(dirname "${BASH_SOURCE[0]}")/_ensure-path.sh"
+
 # Demo de ponta a ponta pra apresentacao: cria cliente/veiculo/OS, anda o
 # ciclo de vida completo (Recebida -> ... -> Entregue) e aprova a OS
 # autenticando o cliente de verdade pela Lambda (oficina-lambda-auth),
