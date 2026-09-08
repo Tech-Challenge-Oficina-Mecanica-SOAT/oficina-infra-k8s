@@ -24,14 +24,29 @@ export AWS_DEFAULT_REGION := $(AWS_REGION)
 # "credenciais inválidas" quando na verdade o comando aws nem foi encontrado.
 # Os caminhos abaixo são acrescentados como fallback: não têm efeito se já
 # estiverem no PATH, e são ignorados silenciosamente se não existirem.
-AWS_CLI_FALLBACK := /c/Program Files/Amazon/AWSCLIV2
+#
+# IMPORTANTE: o $(PATH) herdado aqui já chega em formato NATIVO do Windows
+# (barra invertida, separador ";") - é assim que o Git Bash entrega PATH
+# para qualquer processo nativo (não-MSYS) que ele spawna, incluindo o
+# próprio make.exe (build ezwinports). Os fallbacks abaixo por isso usam
+# o mesmo formato nativo e separador ";", nunca ":" com caminho /c/...:
+# uma linha de receita como "aws ..." ou "kubectl ..." (rodada via sh.exe,
+# que reconverte esse PATH de volta pra formato POSIX) tolera um PATH com
+# separador misturado e ainda encontra o binário - mas um processo nativo
+# de segundo nível, como o kubectl.exe rodando "aws" como plugin de
+# credenciais (client-go exec credential plugin) via exec.LookPath do Go,
+# NÃO tolera: ele herda o PATH que o sh.exe reconverte pra ele, e essa
+# reconversão quebra silenciosamente se o PATH de origem já estava com
+# separador misturado, resultando em "executable aws not found" mesmo
+# com o "aws eks update-kubeconfig" da linha anterior tendo funcionado
+# normalmente (bug reproduzido e confirmado em 2026-09-07).
+AWS_CLI_FALLBACK := C:\Program Files\Amazon\AWSCLIV2
 # $(wildcard) do GNU Make no Windows só resolve glob em caminho nativo
-# (C:/...), não em caminho estilo MSYS (/c/...) - por isso o wildcard usa
-# C:/ aqui. O resultado precisa voltar pra /c/ (via $(subst)) antes de
-# entrar no PATH, senão o ":" depois do "C" é lido como separador de PATH
-# pelo bash e corta o caminho ao meio.
-HELM_FALLBACK := $(subst C:,/c,$(wildcard C:/Users/*/AppData/Local/Microsoft/WinGet/Packages/Helm.Helm_Microsoft.Winget.Source_*/windows-amd64))
-export PATH := $(PATH):$(AWS_CLI_FALLBACK):$(HELM_FALLBACK)
+# (C:/...), não em caminho estilo MSYS (/c/...); o resultado já vem com
+# barra normal (Make sempre usa "/" internamente), convertido aqui pra
+# barra invertida para manter o PATH inteiro em formato nativo uniforme.
+HELM_FALLBACK := $(subst /,\,$(wildcard C:/Users/*/AppData/Local/Microsoft/WinGet/Packages/Helm.Helm_Microsoft.Winget.Source_*/windows-amd64))
+export PATH := $(PATH);$(AWS_CLI_FALLBACK);$(HELM_FALLBACK)
 export MSYS_NO_PATHCONV=1
 
 .PHONY: help creds-check backend-override db-apply db-destroy k8s-apply k8s-destroy \
