@@ -6,7 +6,7 @@ Este repositório provisiona o cluster EKS, a regra de rede que libera o EKS par
 
 ## Propósito
 
-- Cluster EKS (managed node group, 1x `t3.small`) rodando a API da oficina mecânica.
+- Cluster EKS (managed node group, 2x `t3.small`) rodando a API da oficina mecânica.
 - Regra de security group que libera apenas o tráfego do EKS para o RDS na porta 5432 (substitui a liberação temporária "toda a VPC" que o `oficina-infra-db` usa por padrão).
 - Manifestos Kubernetes: namespace, ConfigMap, Deployment/Service/HPA da API, Redis compartilhado (cache de Idempotency-Key).
 - Scripts para popular o Secret K8s a partir do Secrets Manager, fazer o deploy completo e instalar o agente do New Relic.

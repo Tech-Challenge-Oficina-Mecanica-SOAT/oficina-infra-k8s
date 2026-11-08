@@ -53,7 +53,7 @@ O plano original assumia nomes literais para as roles pré-criadas do Academy (`
 
 ## Trade-offs e decisões arquiteturais (AWS Academy)
 
-- **1 node t3.small (`min_size = 1, max_size = 2, desired_size = 1`):** decisão de economia; em produção seriam 2+ nodes para alta disponibilidade.
+- **2 nodes t3.small (`min_size = 1, max_size = 3, desired_size = 2`):** a Fase 4 roda 4 microsserviços + Redis + agente New Relic; com 1 node (limite de ~11 pods) faltava vaga. Custo: o dobro de horas de EC2 do node group no Academy, então continue derrubando o ambiente ao fim da sessão (`make down`).
 - **Sem IRSA (IAM Roles for Service Accounts):** o Academy não permite criar um provedor OIDC próprio.
 - **Sem chave KMS própria para secrets do etcd:** evita administração adicional de KMS neste ambiente acadêmico de ciclo de vida curto; os dados sensíveis da aplicação (senha do RDS, JWT) já são geridos separadamente via Secrets Manager pelo `oficina-infra-db`, não pelo etcd do cluster.
 - **Cluster endpoint público (`endpoint_public_access = true`):** necessário para `kubectl` funcionar a partir da máquina local, fora da VPC.
