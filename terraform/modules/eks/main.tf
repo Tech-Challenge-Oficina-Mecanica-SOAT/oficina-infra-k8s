@@ -70,6 +70,11 @@ resource "aws_eks_node_group" "oficina_workers" {
   subnet_ids      = local.private_subnet_ids
   instance_types  = ["t3.small"]
 
+  launch_template {
+    id      = aws_launch_template.workers.id
+    version = aws_launch_template.workers.latest_version
+  }
+
   scaling_config {
     min_size     = 1
     max_size     = 2
@@ -105,4 +110,16 @@ resource "aws_ssm_parameter" "cluster_security_group_id" {
   type      = "String"
   value     = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
   overwrite = true
+}
+
+# Launch template do node group. Hoje só ajusta o serviço de metadados (IMDSv2): com o limite de
+# salto padrão (1), os pods não alcançam o IMDS e não conseguem credenciais da AWS (ex.: publicar no SNS).
+resource "aws_launch_template" "workers" {
+  name_prefix = "oficina-workers-${var.environment}-"
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
 }
